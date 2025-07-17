@@ -1,0 +1,5 @@
+{
+  "name": "FairPlay Scheduler",
+  "description": "A fair, transparent, and effortless way for Googlers to organize and participate in recurring group activities, eliminating the 'fastest finger first' frustration of event sign-ups with an intelligent, priority-based queuing system.",
+  "requestFramePermissions": []
+}

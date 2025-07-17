@@ -1,0 +1,79 @@
+import { initializeApp } from '@firebase/app';
+import { getAuth, GoogleAuthProvider } from '@firebase/auth';
+import { getFirestore } from '@firebase/firestore';
+
+// IMPORTANT: Replace this with your own Firebase project's configuration.
+// You can get this from the Firebase console:
+// Project Settings > General > Your apps > Web app > Firebase SDK snippet > Config
+const firebaseConfig = {
+  apiKey: "XxxXxXxXxXxXxXxXxXxXxXxXxXxXxXx",
+  authDomain: "somedomain.firebaseapp.com",
+  projectId: "firebase-project-id",
+  storageBucket: "firebase-project-id.appspot.com",
+  messagingSenderId: "21323123",
+  appId: "1:2313213:web:123123123123123",
+  measurementId: "G-2121mk12",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Get Firebase services
+const auth = getAuth(app);
+const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+
+export { auth, db, googleProvider };
+
+/*
+=================================================
+IMPORTANT: FIRESTORE SECURITY RULES
+=================================================
+You MUST set up Firestore security rules in the Firebase console 
+to secure your data. Here is a starting point based on the app's logic.
+
+Go to Firebase Console > Firestore Database > Rules and paste the following:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Helper function to check for @google.com domain
+    function isGoogleUser() {
+      return request.auth.token.email.matches('.*@google\\.com');
+    }
+
+    // Users can only read/write their own profile
+    match /users/{userId} {
+      allow read: if isGoogleUser();
+      allow create: if request.auth.uid == userId && isGoogleUser();
+      allow update: if request.auth.uid == userId;
+    }
+
+    // Authenticated Google users can read groups
+    match /groups/{groupId} {
+      allow read: if isGoogleUser();
+      allow create: if isGoogleUser();
+      // Only owners can update the group details
+      allow update: if isGoogleUser() && request.auth.uid in resource.data.ownerUids;
+    }
+
+    // Event Templates
+    match /events/{eventId} {
+      allow read: if isGoogleUser();
+      // Only owners of the associated group can create/update event templates
+      allow create, update: if isGoogleUser() && request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerUids;
+    }
+
+    // Event Instances
+    match /eventInstances/{instanceId} {
+      allow read: if isGoogleUser();
+      // Creating instances should ideally be a backend function, but for client-side MVP:
+      allow create: if isGoogleUser() && request.auth.uid in get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerUids;
+      // Any authenticated Google user can register/resign (update participants)
+      allow update: if isGoogleUser();
+    }
+  }
+}
+
+*/
