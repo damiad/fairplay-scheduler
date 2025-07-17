@@ -12,7 +12,7 @@ const firebaseConfig = {
   storageBucket: "firebase-project-id.appspot.com",
   messagingSenderId: "21323123",
   appId: "1:2313213:web:123123123123123",
-  measurementId: "G-2121mk12",
+  measurementId: "G-2121mk132",
 };
 
 // Initialize Firebase
