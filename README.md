@@ -163,16 +163,40 @@ This will open the application in your browser, typically at `http://localhost:5
 
 ---
 
-## 🌐 Deploying to GitHub Pages (Easy, No-Build Method)
+## 🌐 Deploying to GitHub Pages 
 
-This project is set up to be deployed as a static site without any build step, which makes deploying to GitHub Pages very simple.
+This project is pre-configured for easy deployment to GitHub Pages.
 
-1.  **Create a GitHub Repository**: Create a new repository on [GitHub](https://github.com/new) and push your project files to the `main` branch.
+### Step 1: Configure Repository Name
 
-2.  **Enable GitHub Pages**:
-    - In your repository on GitHub, go to the **Settings** tab.
-    - In the left sidebar, click on **Pages**.
-    - Under the "Build and deployment" section, for the **Source**, select **"Deploy from a branch"**.
-    - Under "Branch", select `main` and `/ (root)` for the folder, then click **Save**.
+Before your first deployment, you **must** update the `vite.config.ts` file. Change the `base` property from `'/your-repo-name/'` to the name of your GitHub repository.
 
-That's it! GitHub will build and deploy your site. It might take a few minutes. You will find the public URL for your live site on the same settings page.
+For example, if your repository URL is `https://github.com/your-username/fairplay-scheduler`, you would set:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  base: '/fairplay-scheduler/', // <-- UPDATE THIS
+  plugins: [react()],
+})
+```
+
+### Step 2: Deploy
+
+Run the deployment script:
+
+```bash
+npm run deploy
+```
+
+This command will first build the application for production into a `dist` folder and then push the contents of that folder to a `gh-pages` branch on your GitHub repository.
+
+### Step 3: Configure GitHub Repository
+
+1.  Go to your repository's **Settings** tab on GitHub.
+2.  Navigate to the **Pages** section in the left sidebar.
+3.  Under "Build and deployment", set the **Source** to **Deploy from a branch**.
+4.  Set the **Branch** to `gh-pages` and the folder to `/ (root)`.
+5.  Click **Save**.
+
+Your application will be live at `https://<your-username>.github.io/<your-repo-name>/` within a few minutes.
