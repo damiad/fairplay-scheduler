@@ -7,8 +7,8 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {setGlobalOptions} from "firebase-functions/v2";
-import {onSchedule, ScheduledEvent} from "firebase-functions/v2/scheduler";
+import { setGlobalOptions } from "firebase-functions/v2";
+import { onSchedule, ScheduledEvent } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 
@@ -23,31 +23,36 @@ setGlobalOptions({ maxInstances: 10 });
  * A scheduled Cloud Function that runs every 15 minutes to take an
  * "attendance snapshot" for events that are about to start.
  */
-// **FIX:** Added region and structured options object for the schedule.
 export const recordEventAttendance = onSchedule(
   {
     region: "europe-west3",
     schedule: "every 15 minutes",
   },
   async (event: ScheduledEvent): Promise<void> => {
-    logger.info("Checking for events to process for attendance snapshot...", {
-      scheduleTime: event.scheduleTime,
-      region: "europe-west3",
-    });
+    logger.info(
+      "Checking for event instances to process for attendance snapshot...",
+      {
+        scheduleTime: event.scheduleTime,
+        region: "europe-west3",
+      }
+    );
 
     const now = admin.firestore.Timestamp.now();
     const twoHoursFromNow = admin.firestore.Timestamp.fromMillis(
-      now.toMillis() + 2 * 60 * 60 * 1000,
+      now.toMillis() + 2 * 60 * 60 * 1000
     );
 
-    const eventsQuery = db.collection("events")
+    // **CORRECTION:** Changed collection from "events" to "eventInstances".
+    // Also restored the lower-bound time check for efficiency.
+    const eventInstancesQuery = db
+      .collection("eventInstances")
       .where("eventStartDateTime", ">=", now)
       .where("eventStartDateTime", "<=", twoHoursFromNow);
 
-    const eventsSnapshot = await eventsQuery.get();
+    const eventsSnapshot = await eventInstancesQuery.get();
 
     if (eventsSnapshot.empty) {
-      logger.info("No upcoming events found in the time window.");
+      logger.info("No upcoming event instances found in the time window.");
       return;
     }
 
@@ -55,49 +60,70 @@ export const recordEventAttendance = onSchedule(
     let operationsCount = 0;
     let eventsToProcessCount = 0;
 
-    logger.info(`Found ${eventsSnapshot.size} total events in the time window. Filtering now...`);
+    logger.info(
+      `Found ${eventsSnapshot.size} total event instances in the time window. Filtering now...`
+    );
 
     eventsSnapshot.forEach((doc) => {
       const eventData = doc.data();
 
+      // Skip if this instance has already been processed.
       if (eventData.attendanceProcessed === true) {
         return;
       }
 
       eventsToProcessCount++;
 
-      if (!eventData.participants || !eventData.groupId || !eventData.eventStartDateTime) {
-        logger.warn(`Event ${doc.id} is missing required fields. Marking as processed to skip.`);
+      // Validate that the required fields exist before processing.
+      if (
+        !eventData.participants ||
+        !eventData.groupId ||
+        !eventData.eventStartDateTime
+      ) {
+        logger.warn(
+          `Event instance ${doc.id} is missing required fields. Marking as processed to skip.`
+        );
         batch.update(doc.ref, { attendanceProcessed: true });
         operationsCount++;
         return;
       }
 
-      logger.info(`Processing event: "${eventData.title}" (${doc.id})`);
+      logger.info(
+        `Processing event instance: "${eventData.title}" (${doc.id})`
+      );
       const { participants, groupId, eventStartDateTime } = eventData;
 
-      participants.forEach((participant: { uid: string; displayName: string; }) => {
-        if (participant.uid) {
-          const userRef = db.collection("users").doc(participant.uid);
-          const fieldToUpdate = `attendanceHistory.${groupId}`;
-          batch.update(userRef, { [fieldToUpdate]: eventStartDateTime });
-          operationsCount++;
-          logger.info(`Scheduled attendance update for user "${participant.displayName}" for group ${groupId}.`);
+      participants.forEach(
+        (participant: { uid: string; displayName: string }) => {
+          if (participant.uid) {
+            const userRef = db.collection("users").doc(participant.uid);
+            const fieldToUpdate = `attendanceHistory.${groupId}`;
+            // Update the user's attendance history for this group.
+            batch.update(userRef, { [fieldToUpdate]: eventStartDateTime });
+            operationsCount++;
+            logger.info(
+              `Scheduled attendance update for user "${participant.displayName}" for group ${groupId}.`
+            );
+          }
         }
-      });
+      );
 
+      // Mark this event instance as processed to prevent re-runs.
       batch.update(doc.ref, { attendanceProcessed: true });
       operationsCount++;
     });
 
     if (operationsCount > 0) {
       await batch.commit();
-      logger.info(`Successfully processed ${eventsToProcessCount} events and committed ${operationsCount} database operations.`);
+      logger.info(
+        `Successfully processed ${eventsToProcessCount} event instances and committed ${operationsCount} database operations.`
+      );
     } else {
-      logger.info("All events in the time window were already processed.");
+      logger.info(
+        "All event instances in the time window were already processed."
+      );
     }
 
     return;
-  },
+  }
 );
-
