@@ -1,5 +1,29 @@
 import * as admin from "firebase-admin";
-import { EventInstance } from "../../../../types";
+import { Timestamp } from 'firebase/firestore';
+
+// import { EventInstance } from "../../../../types";
+export interface Participant {
+  uid: string;
+  displayName: string;
+  photoURL: string;
+  isOrganizer: boolean;
+  registeredAt: Timestamp;
+}
+
+interface EventInstance {
+  id: string;
+  eventId: string;
+  groupId: string;
+  title: string;
+  description: string;
+  location: string;
+  spots: number;
+  eventStartDateTime: Timestamp;
+  registrationOpenDateTime: Timestamp;
+  listRevealDateTime: Timestamp;
+  participants: Participant[];
+  participantsListProcessed?: boolean;
+}
 
 export async function basicSorting(now: admin.firestore.Timestamp): Promise<void> {
 
