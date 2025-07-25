@@ -7,8 +7,8 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {setGlobalOptions} from "firebase-functions/v2";
-import {onSchedule, ScheduledEvent} from "firebase-functions/v2/scheduler";
+import { setGlobalOptions } from "firebase-functions/v2";
+import { onSchedule, ScheduledEvent } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 
@@ -18,6 +18,12 @@ const db = admin.firestore();
 
 // Set global options for all v2 functions.
 setGlobalOptions({ maxInstances: 10 });
+
+/**
+ * Function that runs the algorithm of participant sorting, and updates the eventInstance.
+ */
+export { sortParticipantScheduledFunction } from "./sorting/sortParticipantsScheduledFunction";
+
 
 /**
  * A scheduled Cloud Function that runs every 15 minutes to take an
