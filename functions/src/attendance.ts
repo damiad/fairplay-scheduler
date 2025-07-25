@@ -9,7 +9,8 @@ const db = admin.firestore();
 /**
  * A scheduled Cloud Function that runs every 15 minutes to take an
  * "attendance snapshot" for events that are about to start. It updates
- * each participant's attendance history for their group.
+ * each confirmed participant's attendance history for their group, respecting
+ * the event's spot limit.
  */
 export const recordEventAttendance = onSchedule(
   "every 15 minutes",
@@ -51,18 +52,23 @@ export const recordEventAttendance = onSchedule(
       eventsToProcessCount++;
 
       // Ensure event has the required data before processing
-      if (!eventData.participants || !eventData.groupId || !eventData.eventStartDateTime) {
-        logger.warn(`Event ${doc.id} is missing required fields. Marking as processed to skip.`);
+      // Added a check for 'spots' as well
+      if (!eventData.participants || !eventData.groupId || !eventData.eventStartDateTime || typeof eventData.spots !== 'number') {
+        logger.warn(`Event ${doc.id} is missing required fields (participants, groupId, eventStartDateTime, or spots). Marking as processed to skip.`);
         batch.update(doc.ref, { attendanceProcessed: true });
         operationsCount++;
         return;
       }
 
       logger.info(`Processing event: "${eventData.title}" (${doc.id})`);
-      const { participants, groupId, eventStartDateTime } = eventData;
+      const { participants, groupId, eventStartDateTime, spots } = eventData;
 
-      // Update the attendance history for each participant in the event
-      participants.forEach((participant: { uid: string; displayName: string; }) => {
+      // Slice the participants array to get only the confirmed attendees
+      const confirmedParticipants = participants.slice(0, spots);
+      logger.info(`Event has ${spots} spots. Processing ${confirmedParticipants.length} confirmed participants out of ${participants.length} total signups.`);
+
+      // Update the attendance history for each CONFIRMED participant
+      confirmedParticipants.forEach((participant: { uid: string; displayName: string; }) => {
         if (participant.uid) {
           const userRef = db.collection("users").doc(participant.uid);
           const fieldToUpdate = `attendanceHistory.${groupId}`;
