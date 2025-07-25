@@ -59,6 +59,6 @@ export interface EventInstance {
 }
 
 export interface SortedParticipant extends Participant {
-  priority: number; // 1: Organizer, 2: Newcomer, 3: Regular
-  lastAttended?: Timestamp;
+  // priority: number; // 1: Organizer, 2: Newcomer, 3: Regular
+  // lastAttended?: Timestamp;
 }
