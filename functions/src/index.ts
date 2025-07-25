@@ -1,5 +1,3 @@
-// functions/src/index.ts
-
 import * as admin from "firebase-admin";
 import { setGlobalOptions } from "firebase-functions/v2";
 
