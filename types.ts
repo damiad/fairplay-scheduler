@@ -36,11 +36,11 @@ export interface EventTemplate {
 }
 
 export interface Participant {
-    uid: string;
-    displayName: string;
-    photoURL: string;
-    isOrganizer: boolean;
-    registeredAt: Timestamp;
+  uid: string;
+  displayName: string;
+  photoURL: string;
+  isOrganizer: boolean;
+  registeredAt: Timestamp;
 }
 
 export interface EventInstance {
@@ -55,6 +55,7 @@ export interface EventInstance {
   registrationOpenDateTime: Timestamp;
   listRevealDateTime: Timestamp;
   participants: Participant[];
+  participantsListProcessed?: boolean;
 }
 
 export interface SortedParticipant extends Participant {
