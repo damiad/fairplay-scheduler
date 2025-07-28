@@ -10,7 +10,7 @@ const db = admin.firestore();
  */
 export const recordEventAttendance = onSchedule(
   {
-    schedule: "4,19,34,48 * * * *",
+    schedule: "3,18,33,48 * * * *",
     timeZone: "Europe/Warsaw",
     region: "europe-west3",
   },
