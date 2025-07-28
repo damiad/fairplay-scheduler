@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp, collection, getDocs, where, query } from '@firebase/firestore';
-import { db } from '../../services/firebase';
-import { useAuth } from '../../hooks/useAuth';
-import { EventInstance, UserProfile, Participant, SortedParticipant } from '../../types';
+import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, query, Timestamp, updateDoc, where } from '@firebase/firestore';
 import { format } from 'date-fns';
-import { sortParticipants } from '../../utils/sorting';
+import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../services/firebase';
+import { EventInstance, Participant, SortedParticipant, UserProfile } from '../../types';
+import { sortParticipants } from '../../utils/sorting';
 import Button from '../common/Button';
 
 interface EventCardProps {
@@ -37,7 +38,7 @@ const EventCard: React.FC<EventCardProps> = ({ instance, userProfile }) => {
         return instance.registrationOpenDateTime.toDate() <= now && instance.eventStartDateTime.toDate() > now;
     }, [instance.registrationOpenDateTime, instance.eventStartDateTime]);
 
-    const isListRevealed = useMemo(() => instance.listRevealDateTime.toDate() <= new Date(), [instance.listRevealDateTime]);
+    const isListRevealed = useMemo(() => instance.participantsListProcessed === true, [instance.listRevealDateTime]);
 
     const confirmedList = useMemo(() => sortedList.slice(0, instance.spots), [sortedList, instance.spots]);
     const waitingList = useMemo(() => sortedList.slice(instance.spots), [sortedList, instance.spots]);
