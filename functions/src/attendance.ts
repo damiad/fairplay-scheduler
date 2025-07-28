@@ -10,8 +10,9 @@ const db = admin.firestore();
  */
 export const recordEventAttendance = onSchedule(
   {
+    schedule: "4,19,34,48 * * * *",
+    timeZone: "Europe/Warsaw",
     region: "europe-west3",
-    schedule: "every 15 minutes",
   },
   async (event: ScheduledEvent): Promise<void> => {
     logger.info(
