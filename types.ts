@@ -1,5 +1,4 @@
-
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from "firebase/firestore";
 
 export interface UserProfile {
   uid: string;
@@ -28,7 +27,7 @@ export interface EventTemplate {
   registrationOpenDateTime: Timestamp;
   listRevealDateTime: Timestamp;
   recurrence: {
-    type: 'days' | 'weeks' | 'months';
+    type: "days" | "weeks" | "months";
     value: number;
   };
   recurrenceEndDate: Timestamp;
@@ -36,11 +35,11 @@ export interface EventTemplate {
 }
 
 export interface Participant {
-    uid: string;
-    displayName: string;
-    photoURL: string;
-    isOrganizer: boolean;
-    registeredAt: Timestamp;
+  uid: string;
+  displayName: string;
+  photoURL: string;
+  isOrganizer: boolean;
+  registeredAt: Timestamp;
 }
 
 export interface EventInstance {
@@ -55,9 +54,7 @@ export interface EventInstance {
   registrationOpenDateTime: Timestamp;
   listRevealDateTime: Timestamp;
   participants: Participant[];
+  participantsListProcessed?: boolean;
+  attendanceProcessed: boolean;
 }
 
-export interface SortedParticipant extends Participant {
-  priority: number; // 1: Organizer, 2: Newcomer, 3: Regular
-  lastAttended?: Timestamp;
-}

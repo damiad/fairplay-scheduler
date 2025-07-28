@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp, collection, getDocs, where, query } from '@firebase/firestore';
-import { db } from '../../services/firebase';
-import { useAuth } from '../../hooks/useAuth';
-import { EventInstance, UserProfile, Participant, SortedParticipant } from '../../types';
+import { arrayRemove, arrayUnion, doc, Timestamp, updateDoc } from '@firebase/firestore';
 import { format } from 'date-fns';
-import { sortParticipants } from '../../utils/sorting';
+import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../services/firebase';
+import { EventInstance, Participant, UserProfile } from '../../types';
 import Button from '../common/Button';
 
 interface EventCardProps {
@@ -24,7 +24,7 @@ const UserIcon: React.FC = () => (
 const EventCard: React.FC<EventCardProps> = ({ instance, userProfile }) => {
     const { user } = useAuth();
     const [isRegistering, setIsRegistering] = useState(false);
-    const [sortedList, setSortedList] = useState<SortedParticipant[]>([]);
+    const [sortedList, setSortedList] = useState<Participant[]>([]);
     const [showOrganizerCheckbox, setShowOrganizerCheckbox] = useState(false);
 
     const currentUserParticipant = useMemo(() => 
@@ -37,7 +37,7 @@ const EventCard: React.FC<EventCardProps> = ({ instance, userProfile }) => {
         return instance.registrationOpenDateTime.toDate() <= now && instance.eventStartDateTime.toDate() > now;
     }, [instance.registrationOpenDateTime, instance.eventStartDateTime]);
 
-    const isListRevealed = useMemo(() => instance.listRevealDateTime.toDate() <= new Date(), [instance.listRevealDateTime]);
+    const isListRevealed = useMemo(() => instance.participantsListProcessed === true, [instance.listRevealDateTime]);
 
     const confirmedList = useMemo(() => sortedList.slice(0, instance.spots), [sortedList, instance.spots]);
     const waitingList = useMemo(() => sortedList.slice(instance.spots), [sortedList, instance.spots]);
@@ -48,26 +48,7 @@ const EventCard: React.FC<EventCardProps> = ({ instance, userProfile }) => {
                 setSortedList([]);
                 return;
             }
-
-            const participantUids = instance.participants.map(p => p.uid);
-            // Fetch all required user profiles in one go
-            const profilesMap = new Map<string, UserProfile>();
-            
-            // Add current user profile if available
-            if(userProfile) profilesMap.set(userProfile.uid, userProfile);
-
-            // Fetch profiles for other participants
-            const uidsToFetch = participantUids.filter(uid => !profilesMap.has(uid));
-            if (uidsToFetch.length > 0) {
-                const q = query(collection(db, 'users'), where('uid', 'in', uidsToFetch));
-                const snapshot = await getDocs(q);
-                snapshot.forEach(doc => {
-                    profilesMap.set(doc.id, doc.data() as UserProfile);
-                });
-            }
-
-            const sorted = sortParticipants(instance.participants, profilesMap, instance);
-            setSortedList(sorted);
+            setSortedList(instance.participants);
         };
 
         sortAndSetList();
@@ -118,7 +99,7 @@ const EventCard: React.FC<EventCardProps> = ({ instance, userProfile }) => {
         }
     };
 
-    const renderParticipant = (p: SortedParticipant, index: number) => (
+    const renderParticipant = (p: Participant, index: number) => (
         <li key={p.uid} className="flex items-center gap-3 py-2">
             <span className="font-mono text-dark-text-secondary w-6 text-right">{index + 1}.</span>
             <img src={p.photoURL} alt={p.displayName} className="w-8 h-8 rounded-full"/>
