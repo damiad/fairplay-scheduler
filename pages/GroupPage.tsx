@@ -1,6 +1,6 @@
 import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, Timestamp, where } from "@firebase/firestore";
 import { add } from "date-fns";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
 
@@ -17,10 +17,12 @@ const GroupPage: React.FC = () => {
   const { user, userProfile } = useAuth();
 
   const [group, setGroup] = useState<Group | null>(null);
-  const [eventInstances, setEventInstances] = useState<EventInstance[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<EventInstance[]>([]);
+  const [pastEvents, setPastEvents] = useState<EventInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEventModalOpen, setEventModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeView, setActiveView] = useState<"upcoming" | "past">("upcoming");
 
   const isOwner = group?.ownerUids.includes(user?.uid || "") || false;
 
@@ -48,11 +50,30 @@ const GroupPage: React.FC = () => {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const instances: EventInstance[] = [];
+        const thresholdTime = new Date(
+          new Date().getTime() - 2 * 60 * 60 * 1000
+        );
+        const upcoming: EventInstance[] = [];
+        const past: EventInstance[] = [];
+
         snapshot.forEach((doc) => {
-          instances.push({ id: doc.id, ...doc.data() } as EventInstance);
+          const instance = { id: doc.id, ...doc.data() } as EventInstance;
+          if (instance.eventStartDateTime.toDate() < thresholdTime) {
+            past.push(instance);
+          } else {
+            upcoming.push(instance);
+          }
         });
-        setEventInstances(instances);
+
+        setUpcomingEvents(upcoming);
+        // Sort past events with the most recent first
+        setPastEvents(
+          past.sort(
+            (a, b) =>
+              b.eventStartDateTime.toDate().getTime() -
+              a.eventStartDateTime.toDate().getTime()
+          )
+        );
         setLoading(false);
       },
       (error) => {
@@ -174,28 +195,76 @@ const GroupPage: React.FC = () => {
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold mb-4">Upcoming Events</h2>
-      <div className="space-y-6">
-        {eventInstances.length > 0 ? (
-          eventInstances.map((instance) => (
-            <EventCard
-              key={instance.id}
-              instance={instance}
-              userProfile={userProfile}
-            />
-          ))
-        ) : (
-          <div className="text-center py-10 bg-dark-surface rounded-lg">
-            <p className="text-dark-text-secondary">
-              No upcoming events scheduled for this group.
-            </p>
-            {isOwner && (
-              <p className="mt-2 text-sm text-dark-text-secondary">
-                Click "Create New Event" to get started.
-              </p>
-            )}
-          </div>
-        )}
+      <div className="mt-8">
+        <div className="flex border-b border-dark-border mb-6">
+          <button
+            onClick={() => setActiveView("upcoming")}
+            className={`px-6 py-2 text-lg font-medium transition-colors duration-200 ${
+              activeView === "upcoming"
+                ? "border-b-2 border-primary text-white"
+                : "text-dark-text-secondary hover:text-white"
+            }`}
+          >
+            Upcoming ({upcomingEvents.length})
+          </button>
+          <button
+            onClick={() => setActiveView("past")}
+            className={`px-6 py-2 text-lg font-medium transition-colors duration-200 ${
+              activeView === "past"
+                ? "border-b-2 border-primary text-white"
+                : "text-dark-text-secondary hover:text-white"
+            }`}
+          >
+            Past ({pastEvents.length})
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          {activeView === "upcoming" && (
+            <>
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((instance) => (
+                  <EventCard
+                    key={instance.id}
+                    instance={instance}
+                    userProfile={userProfile}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-10 bg-dark-surface rounded-lg">
+                  <p className="text-dark-text-secondary">
+                    No upcoming events scheduled for this group.
+                  </p>
+                  {isOwner && (
+                    <p className="mt-2 text-sm text-dark-text-secondary">
+                      Click "Create New Event" to get started.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeView === "past" && (
+            <>
+              {pastEvents.length > 0 ? (
+                pastEvents.map((instance) => (
+                  <EventCard
+                    key={instance.id}
+                    instance={instance}
+                    userProfile={userProfile}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-10 bg-dark-surface rounded-lg">
+                  <p className="text-dark-text-secondary">
+                    No past events found for this group.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {isOwner && (
