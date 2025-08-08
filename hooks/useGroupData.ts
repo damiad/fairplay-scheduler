@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from "@firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query, where } from "@firebase/firestore";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -19,17 +19,23 @@ export const useGroupData = (groupId: string | undefined) => {
 
     setLoading(true);
 
-    const fetchGroupDetails = async () => {
-      const groupRef = doc(db, "groups", groupId);
-      const groupSnap = await getDoc(groupRef);
-      if (groupSnap.exists()) {
-        setGroup({ id: groupSnap.id, ...groupSnap.data() } as Group);
-      } else {
-        toast.error("Group not found.");
+    const groupRef = doc(db, "groups", groupId);
+    const groupUnsubscribe = onSnapshot(
+      groupRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setGroup({ id: docSnap.id, ...docSnap.data() } as Group);
+        } else {
+          toast.error("Group not found.");
+          setGroup(null);
+        }
+      },
+      (error) => {
+        console.error("Error fetching group details:", error);
+        toast.error("Failed to load group details.");
       }
-    };
+    );
 
-    fetchGroupDetails();
 
     const q = query(
       collection(db, "eventInstances"),
@@ -37,7 +43,7 @@ export const useGroupData = (groupId: string | undefined) => {
       orderBy("eventStartDateTime", "asc")
     );
 
-    const unsubscribe = onSnapshot(
+    const eventsUnsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const thresholdTime = new Date(
@@ -72,7 +78,10 @@ export const useGroupData = (groupId: string | undefined) => {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      groupUnsubscribe();
+      eventsUnsubscribe();
+    };
   }, [groupId]);
 
   return { group, upcomingEvents, pastEvents, loading };

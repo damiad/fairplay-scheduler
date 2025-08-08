@@ -8,12 +8,14 @@ interface GroupHeaderProps {
   group: Group | null;
   isOwner: boolean;
   onOpenCreateEventModal: () => void;
+  onOpenEditGroupModal: () => void;
 }
 
 const GroupHeader: React.FC<GroupHeaderProps> = ({
   group,
   isOwner,
   onOpenCreateEventModal,
+  onOpenEditGroupModal,
 }) => {
   return (
     <div className="mb-8">
@@ -26,7 +28,12 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
           <p className="text-dark-text-secondary mt-1">{group?.description}</p>
         </div>
         {isOwner && (
-          <Button onClick={onOpenCreateEventModal}>Create New Events</Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={onOpenEditGroupModal}>
+              Edit Group
+            </Button>
+            <Button onClick={onOpenCreateEventModal}>Create New Event</Button>
+          </div>
         )}
       </div>
     </div>

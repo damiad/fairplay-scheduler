@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import Modal from "../components/common/Modal";
 import Spinner from "../components/common/Spinner";
 import CreateEventForm from "../components/groups/CreateEventForm";
+import EditGroupForm from "../components/groups/EditGroupForm";
 import EventTabs from "../components/groups/EventTabs";
 import GroupHeader from "../components/groups/GroupHeader";
 import ModifyEventInstanceForm from "../components/groups/ModifyEventInstanceForm";
@@ -19,19 +20,20 @@ const GroupPage: React.FC = () => {
   const { user, userProfile } = useAuth();
   const { group, upcomingEvents, pastEvents, loading } = useGroupData(groupId);
 
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [isCreateEventModalOpen, setCreateEventModalOpen] = useState(false);
+  const [isEditEventModalOpen, setEditEventModalOpen] = useState(false);
+  const [isEditGroupModalOpen, setEditGroupModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] =
     useState<EventInstance | null>(null);
 
   const isOwner = group?.ownerUids.includes(user?.uid || "") || false;
 
-  const handleEditClick = (instance: EventInstance) => {
+  const handleEditEventClick = (instance: EventInstance) => {
     setSelectedInstance(instance);
-    setEditModalOpen(true);
+    setEditEventModalOpen(true);
   };
 
-  const handleDelete = async (instanceId: string) => {
+  const handleDeleteEvent = async (instanceId: string) => {
     if (
       window.confirm(
         "Are you sure you want to delete this event instance? This action cannot be undone."
@@ -60,7 +62,8 @@ const GroupPage: React.FC = () => {
       <GroupHeader
         group={group}
         isOwner={isOwner}
-        onOpenCreateEventModal={() => setCreateModalOpen(true)}
+        onOpenCreateEventModal={() => setCreateEventModalOpen(true)}
+        onOpenEditGroupModal={() => setEditGroupModalOpen(true)}
       />
 
       <EventTabs
@@ -68,36 +71,52 @@ const GroupPage: React.FC = () => {
         pastEvents={pastEvents}
         userProfile={userProfile}
         isOwner={isOwner}
-        onEdit={handleEditClick}
-        onDelete={handleDelete}
+        onEdit={handleEditEventClick}
+        onDelete={handleDeleteEvent}
       />
 
       {isOwner && (
-        <Modal
-          isOpen={isCreateModalOpen}
-          onClose={() => setCreateModalOpen(false)}
-          closeOnOverlayClick={false}
-          title="Create New Events"
-        >
-          <CreateEventForm
-            groupId={groupId!}
-            onClose={() => setCreateModalOpen(false)}
-          />
-        </Modal>
-      )}
+        <>
+          <Modal
+            isOpen={isCreateEventModalOpen}
+            onClose={() => setCreateEventModalOpen(false)}
+            closeOnOverlayClick={false}
+            title="Create New Event"
+          >
+            <CreateEventForm
+              groupId={groupId!}
+              onClose={() => setCreateEventModalOpen(false)}
+            />
+          </Modal>
 
-      {isOwner && selectedInstance && (
-        <Modal
-          isOpen={isEditModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          closeOnOverlayClick={false}
-          title="Edit Event Instance"
-        >
-          <ModifyEventInstanceForm
-            instance={selectedInstance}
-            onClose={() => setEditModalOpen(false)}
-          />
-        </Modal>
+          {selectedInstance && (
+            <Modal
+              isOpen={isEditEventModalOpen}
+              onClose={() => setEditEventModalOpen(false)}
+              closeOnOverlayClick={false}
+              title="Edit Event Instance"
+            >
+              <ModifyEventInstanceForm
+                instance={selectedInstance}
+                onClose={() => setEditEventModalOpen(false)}
+              />
+            </Modal>
+          )}
+
+          {group && (
+            <Modal
+              isOpen={isEditGroupModalOpen}
+              onClose={() => setEditGroupModalOpen(false)}
+              closeOnOverlayClick={false}
+              title="Edit Group Details"
+            >
+              <EditGroupForm
+                group={group}
+                onClose={() => setEditGroupModalOpen(false)}
+              />
+            </Modal>
+          )}
+        </>
       )}
     </div>
   );
