@@ -36,6 +36,33 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({
         `${data.revealDate}T${data.revealTime}`
       );
 
+      // --- VALIDATION LOGIC ---
+      const now = new Date();
+      const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
+      if (eventStartDateTime < threeHoursFromNow) {
+        toast.error("Event must start at least 3 hours from now.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (registrationOpenDateTime >= listRevealDateTime) {
+        toast.error("Registration must open before the list reveal date.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const threeHoursBeforeEvent = new Date(
+        eventStartDateTime.getTime() - 3 * 60 * 60 * 1000
+      );
+      if (listRevealDateTime > threeHoursBeforeEvent) {
+        toast.error(
+          "List must be revealed at least 3 hours before the event starts."
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       if (isRecurring) {
         // --- Logic for RECURRING events ---
         const recurrenceEndDate = new Date(data.recurrenceEndDate as string);
