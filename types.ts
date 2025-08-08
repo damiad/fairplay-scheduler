@@ -54,7 +54,7 @@ export interface EventInstance {
   registrationOpenDateTime: Timestamp;
   listRevealDateTime: Timestamp;
   participants: Participant[];
-  participantsListProcessed?: boolean;
+  participantsListProcessed: boolean;
   attendanceProcessed: boolean;
 }
 

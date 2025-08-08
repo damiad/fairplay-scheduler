@@ -8,6 +8,8 @@ interface EventTabsProps {
   pastEvents: EventInstance[];
   userProfile: UserProfile | null;
   isOwner: boolean;
+  onEdit: (instance: EventInstance) => void;
+  onDelete: (instanceId: string) => void;
 }
 
 const EventTabs: React.FC<EventTabsProps> = ({
@@ -15,38 +17,39 @@ const EventTabs: React.FC<EventTabsProps> = ({
   pastEvents,
   userProfile,
   isOwner,
+  onEdit,
+  onDelete,
 }) => {
   const [activeView, setActiveView] = useState<"upcoming" | "past">("upcoming");
 
-  const renderEventList = (
-    events: EventInstance[],
-    type: "upcoming" | "past"
-  ) => {
-    if (events.length > 0) {
-      return events.map((instance) => (
-        <EventCard
-          key={instance.id}
-          instance={instance}
-          userProfile={userProfile}
-        />
-      ));
-    }
-
-    return (
-      <div className="text-center py-10 bg-dark-surface rounded-lg">
-        <p className="text-dark-text-secondary">
-          {type === "upcoming"
-            ? "No upcoming events scheduled for this group."
-            : "No past events found for this group."}
-        </p>
-        {type === "upcoming" && isOwner && (
-          <p className="mt-2 text-sm text-dark-text-secondary">
-            Click "Create New Event" to get started.
-          </p>
-        )}
-      </div>
-    );
+  const renderEventList = (events: EventInstance[], isPast: boolean) => {
+    return events.map((instance) => (
+      <EventCard
+        key={instance.id}
+        instance={instance}
+        userProfile={userProfile}
+        isOwner={isOwner}
+        onEdit={() => onEdit(instance)}
+        onDelete={() => onDelete(instance.id)}
+        isPastEvent={isPast}
+      />
+    ));
   };
+
+  const renderEmptyState = (type: "upcoming" | "past") => (
+    <div className="text-center py-10 bg-dark-surface rounded-lg">
+      <p className="text-dark-text-secondary">
+        {type === "upcoming"
+          ? "No upcoming events scheduled for this group."
+          : "No past events found for this group."}
+      </p>
+      {type === "upcoming" && isOwner && (
+        <p className="mt-2 text-sm text-dark-text-secondary">
+          Click "Create New Event" to get started.
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div className="mt-8">
@@ -75,8 +78,12 @@ const EventTabs: React.FC<EventTabsProps> = ({
 
       <div className="space-y-6">
         {activeView === "upcoming"
-          ? renderEventList(upcomingEvents, "upcoming")
-          : renderEventList(pastEvents, "past")}
+          ? upcomingEvents.length > 0
+            ? renderEventList(upcomingEvents, false)
+            : renderEmptyState("upcoming")
+          : pastEvents.length > 0
+          ? renderEventList(pastEvents, true)
+          : renderEmptyState("past")}
       </div>
     </div>
   );
