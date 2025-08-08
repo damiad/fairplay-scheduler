@@ -45,7 +45,7 @@ const EventTabs: React.FC<EventTabsProps> = ({
       </p>
       {type === "upcoming" && isOwner && (
         <p className="mt-2 text-sm text-dark-text-secondary">
-          Click "Create New Event" to get started.
+          Click "Create New Events" to get started.
         </p>
       )}
     </div>

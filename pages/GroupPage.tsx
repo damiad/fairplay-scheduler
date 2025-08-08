@@ -77,7 +77,7 @@ const GroupPage: React.FC = () => {
           isOpen={isCreateModalOpen}
           onClose={() => setCreateModalOpen(false)}
           closeOnOverlayClick={false}
-          title="Create New Recurring Event"
+          title="Create New Events"
         >
           <CreateEventForm
             groupId={groupId!}

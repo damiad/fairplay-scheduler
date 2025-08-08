@@ -17,6 +17,7 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({
   onClose,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(true);
 
   const handleCreateEvent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,59 +35,85 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({
       const listRevealDateTime = new Date(
         `${data.revealDate}T${data.revealTime}`
       );
-      const recurrenceEndDate = new Date(data.recurrenceEndDate as string);
 
-      const template: Omit<EventTemplate, "id" | "createdAt"> = {
-        groupId,
-        title: data.title as string,
-        description: data.description as string,
-        location: data.location as string,
-        spots: Number(data.spots),
-        eventStartDateTime: Timestamp.fromDate(eventStartDateTime),
-        registrationOpenDateTime: Timestamp.fromDate(registrationOpenDateTime),
-        listRevealDateTime: Timestamp.fromDate(listRevealDateTime),
-        recurrence: {
-          type: data.recurrenceType as "days" | "weeks" | "months",
-          value: Number(data.recurrenceValue),
-        },
-        recurrenceEndDate: Timestamp.fromDate(recurrenceEndDate),
-      };
+      if (isRecurring) {
+        // --- Logic for RECURRING events ---
+        const recurrenceEndDate = new Date(data.recurrenceEndDate as string);
 
-      const eventTemplateRef = await addDoc(collection(db, "events"), {
-        ...template,
-        createdAt: serverTimestamp(),
-      });
-
-      let currentEventDate = eventStartDateTime;
-      let currentRegDate = registrationOpenDateTime;
-      let currentRevealDate = listRevealDateTime;
-
-      while (currentEventDate <= recurrenceEndDate) {
-        const instance: Omit<EventInstance, "id"> = {
-          eventId: eventTemplateRef.id,
+        const template: Omit<EventTemplate, "id" | "createdAt"> = {
           groupId,
-          title: template.title,
-          description: template.description,
-          location: template.location,
-          spots: template.spots,
-          eventStartDateTime: Timestamp.fromDate(currentEventDate),
-          registrationOpenDateTime: Timestamp.fromDate(currentRegDate),
-          listRevealDateTime: Timestamp.fromDate(currentRevealDate),
+          title: data.title as string,
+          description: data.description as string,
+          location: data.location as string,
+          spots: Number(data.spots),
+          eventStartDateTime: Timestamp.fromDate(eventStartDateTime),
+          registrationOpenDateTime: Timestamp.fromDate(
+            registrationOpenDateTime
+          ),
+          listRevealDateTime: Timestamp.fromDate(listRevealDateTime),
+          recurrence: {
+            type: data.recurrenceType as "days" | "weeks" | "months",
+            value: Number(data.recurrenceValue),
+          },
+          recurrenceEndDate: Timestamp.fromDate(recurrenceEndDate),
+        };
+
+        const eventTemplateRef = await addDoc(collection(db, "events"), {
+          ...template,
+          createdAt: serverTimestamp(),
+        });
+
+        let currentEventDate = eventStartDateTime;
+        let currentRegDate = registrationOpenDateTime;
+        let currentRevealDate = listRevealDateTime;
+
+        while (currentEventDate <= recurrenceEndDate) {
+          const instance: Omit<EventInstance, "id"> = {
+            eventId: eventTemplateRef.id,
+            groupId,
+            title: template.title,
+            description: template.description,
+            location: template.location,
+            spots: template.spots,
+            eventStartDateTime: Timestamp.fromDate(currentEventDate),
+            registrationOpenDateTime: Timestamp.fromDate(currentRegDate),
+            listRevealDateTime: Timestamp.fromDate(currentRevealDate),
+            participants: [],
+            participantsListProcessed: false,
+            attendanceProcessed: false,
+          };
+          await addDoc(collection(db, "eventInstances"), instance);
+
+          const duration = {
+            [template.recurrence.type]: template.recurrence.value,
+          };
+          currentEventDate = add(currentEventDate, duration);
+          currentRegDate = add(currentRegDate, duration);
+          currentRevealDate = add(currentRevealDate, duration);
+        }
+        toast.success("Recurring event created successfully!");
+      } else {
+        // --- Logic for a ONE-TIME event ---
+        const instance: Omit<EventInstance, "id"> = {
+          eventId: "one-time-event", // Placeholder as there's no template
+          groupId,
+          title: data.title as string,
+          description: data.description as string,
+          location: data.location as string,
+          spots: Number(data.spots),
+          eventStartDateTime: Timestamp.fromDate(eventStartDateTime),
+          registrationOpenDateTime: Timestamp.fromDate(
+            registrationOpenDateTime
+          ),
+          listRevealDateTime: Timestamp.fromDate(listRevealDateTime),
           participants: [],
           participantsListProcessed: false,
           attendanceProcessed: false,
         };
         await addDoc(collection(db, "eventInstances"), instance);
-
-        const duration = {
-          [template.recurrence.type]: template.recurrence.value,
-        };
-        currentEventDate = add(currentEventDate, duration);
-        currentRegDate = add(currentRegDate, duration);
-        currentRevealDate = add(currentRevealDate, duration);
+        toast.success("Event created successfully!");
       }
 
-      toast.success("Recurring event created successfully!");
       onClose();
     } catch (error) {
       console.error("Error creating event:", error);
@@ -131,7 +158,7 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="label-style">First Event Date</label>
+          <label className="label-style">Event Date</label>
           <input
             name="eventStartDate"
             type="date"
@@ -186,41 +213,57 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({
         </div>
       </div>
 
-      <div>
-        <label className="label-style">Recurrence</label>
-        <div className="flex items-center gap-2">
-          <span>Every</span>
-          <input
-            name="recurrenceValue"
-            type="number"
-            min="1"
-            defaultValue="1"
-            required
-            className="input-style w-20"
-          />
-          <select name="recurrenceType" required className="input-style">
-            <option value="days">Day(s)</option>
-            <option value="weeks">Week(s)</option>
-            <option value="months">Month(s)</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label className="label-style">Recurrence End Date</label>
+      <label className="flex items-center gap-2 cursor-pointer text-sm">
         <input
-          name="recurrenceEndDate"
-          type="date"
-          required
-          className="input-style"
+          type="checkbox"
+          checked={isRecurring}
+          onChange={(e) => setIsRecurring(e.target.checked)}
+          className="form-checkbox bg-dark-bg border-dark-border text-primary focus:ring-primary"
         />
-      </div>
+        <span>Make this a recurring event</span>
+      </label>
+
+      {isRecurring && (
+        <div className="space-y-4 border-t border-dark-border pt-4">
+          <label className="label-style">Recurrence</label>
+          <div className="flex items-center gap-2">
+            <span>Every</span>
+            <input
+              name="recurrenceValue"
+              type="number"
+              min="1"
+              defaultValue="1"
+              required={isRecurring}
+              className="input-style w-20"
+            />
+            <select
+              name="recurrenceType"
+              required={isRecurring}
+              className="input-style"
+            >
+              <option value="days">Day(s)</option>
+              <option value="weeks">Week(s)</option>
+              <option value="months">Month(s)</option>
+            </select>
+          </div>
+          <div>
+            <label className="label-style">Recurrence End Date</label>
+            <input
+              name="recurrenceEndDate"
+              type="date"
+              required={isRecurring}
+              className="input-style"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="pt-4 flex justify-end gap-3">
         <Button type="button" variant="ghost" onClick={onClose}>
           Cancel
         </Button>
         <Button type="submit" isLoading={isSubmitting}>
-          Create Events
+          Create Event{isRecurring && "s"}
         </Button>
       </div>
       <style>{`

@@ -26,7 +26,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
           <p className="text-dark-text-secondary mt-1">{group?.description}</p>
         </div>
         {isOwner && (
-          <Button onClick={onOpenCreateEventModal}>Create New Event</Button>
+          <Button onClick={onOpenCreateEventModal}>Create New Events</Button>
         )}
       </div>
     </div>
