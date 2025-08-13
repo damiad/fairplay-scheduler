@@ -35,6 +35,36 @@ const ModifyEventInstanceForm: React.FC<ModifyEventInstanceFormProps> = ({
         `${data.revealDate}T${data.revealTime}`
       );
 
+      // --- VALIDATION LOGIC ---
+      const now = new Date();
+      const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
+      // Only validate for future events. Past events might not meet this criteria anymore.
+      if (eventStartDateTime > now) {
+        if (eventStartDateTime < threeHoursFromNow) {
+          toast.error("Event must start at least 3 hours from now.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (registrationOpenDateTime >= listRevealDateTime) {
+          toast.error("Registration must open before the list reveal date.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const threeHoursBeforeEvent = new Date(
+          eventStartDateTime.getTime() - 3 * 60 * 60 * 1000
+        );
+        if (listRevealDateTime > threeHoursBeforeEvent) {
+          toast.error(
+            "List must be revealed at least 3 hours before the event starts."
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const updatedData = {
         title: data.title as string,
         description: data.description as string,
