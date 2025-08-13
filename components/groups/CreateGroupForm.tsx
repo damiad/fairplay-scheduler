@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../services/firebase";
 import Button from "../common/Button";
+import OwnersInput from "./OwnersInput";
 
 interface CreateGroupFormProps {
   onClose: () => void;
@@ -16,16 +17,25 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onClose }) => {
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
 
+  // The creator is always the first owner.
+  const [ownerUids, setOwnerUids] = useState<string[]>(user ? [user.uid] : []);
+
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!groupName.trim() || !user) return;
+
+    // Validation: Ensure there is at least one owner.
+    if (ownerUids.length === 0) {
+      toast.error("A group must have at least one owner.");
+      return; // Stop the submission if there are no owners.
+    }
 
     setIsCreating(true);
     try {
       await addDoc(collection(db, "groups"), {
         name: groupName,
         description: groupDesc,
-        ownerUids: [user.uid],
+        ownerUids: ownerUids,
         createdAt: serverTimestamp(),
       });
       toast.success("Group created successfully!");
@@ -38,14 +48,13 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onClose }) => {
     }
   };
 
+  if (!user) return null;
+
   return (
     <form onSubmit={handleCreateGroup}>
       <div className="space-y-4">
         <div>
-          <label
-            htmlFor="groupName"
-            className="block text-sm font-medium text-dark-text-secondary mb-1"
-          >
+          <label htmlFor="groupName" className="label-style">
             Group Name
           </label>
           <input
@@ -54,15 +63,12 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onClose }) => {
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             placeholder="e.g., Football-WAW"
-            className="w-full bg-dark-bg border border-dark-border rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+            className="input-style"
             required
           />
         </div>
         <div>
-          <label
-            htmlFor="groupDesc"
-            className="block text-sm font-medium text-dark-text-secondary mb-1"
-          >
+          <label htmlFor="groupDesc" className="label-style">
             Description
           </label>
           <textarea
@@ -70,11 +76,14 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onClose }) => {
             value={groupDesc}
             onChange={(e) => setGroupDesc(e.target.value)}
             placeholder="A short description of the group and its activities."
-            className="w-full bg-dark-bg border border-dark-border rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+            className="input-style"
             rows={3}
-            required
           />
         </div>
+        <OwnersInput
+          initialOwnerUids={ownerUids}
+          onOwnersChange={setOwnerUids}
+        />
       </div>
       <div className="mt-6 flex justify-end gap-3">
         <Button type="button" variant="ghost" onClick={onClose}>
@@ -84,6 +93,7 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onClose }) => {
           Create Group
         </Button>
       </div>
+      <style>{`.input-style { display: block; width: 100%; background-color: #2a2a2a; border: 1px solid #444; color: #e0e0e0; border-radius: 0.375rem; padding: 0.5rem 0.75rem; } .label-style { display: block; font-size: 0.875rem; font-weight: 500; color: #a0a0a0; margin-bottom: 0.25rem; }`}</style>
     </form>
   );
 };
