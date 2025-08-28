@@ -8,3 +8,4 @@ setGlobalOptions({ maxInstances: 10, region: "europe-west3" });
 // Export your functions from their respective files.
 export { recordEventAttendance } from "./attendance";
 export { sortParticipantScheduledFunction } from "./sorting";
+export { sendCalendarInvitesScheduledFunction } from "./invitation_sender";
