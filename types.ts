@@ -11,6 +11,7 @@ export interface UserProfile {
 export interface Group {
   id: string;
   name: string;
+  slug: string; // URL-friendly identifier
   description: string;
   ownerUids: string[];
   createdAt: Timestamp;

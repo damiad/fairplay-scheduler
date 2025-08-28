@@ -5,15 +5,23 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../services/firebase";
 import { Group } from "../../types";
+import { validateGroupDetails } from "../../utils/utils";
 import Button from "../common/Button";
 import OwnersInput from "./OwnersInput";
 
 interface EditGroupFormProps {
   group: Group;
-  onClose: () => void;
+  // Changed from onClose to pass the new slug back on success.
+  onUpdateSuccess: (newSlug: string) => void;
+  // Added a separate prop for just closing the modal.
+  onCancel: () => void;
 }
 
-const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onClose }) => {
+const EditGroupForm: React.FC<EditGroupFormProps> = ({
+  group,
+  onUpdateSuccess,
+  onCancel,
+}) => {
   const [groupName, setGroupName] = useState(group.name);
   const [groupDesc, setGroupDesc] = useState(group.description);
   const [ownerUids, setOwnerUids] = useState(group.ownerUids);
@@ -24,27 +32,34 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onClose }) => {
     e.preventDefault();
     if (!groupName.trim()) return;
 
-    // Validation: Ensure there is at least one owner.
-    if (ownerUids.length === 0) {
-      toast.error("A group must have at least one owner.");
-      return; // Stop the submission if there are no owners.
-    }
-
     setIsUpdating(true);
-    const groupRef = doc(db, "groups", group.id);
-
     try {
+      const validation = await validateGroupDetails(
+        groupName,
+        ownerUids,
+        group.id
+      );
+
+      if (!validation.isValid) {
+        toast.error(validation.error!);
+        setIsUpdating(false);
+        return;
+      }
+
+      const groupRef = doc(db, "groups", group.id);
       await updateDoc(groupRef, {
         name: groupName,
+        slug: validation.slug,
         description: groupDesc,
         ownerUids: ownerUids,
       });
+
       toast.success("Group updated successfully!");
-      onClose();
+      // On success, call the callback with the new, validated slug.
+      onUpdateSuccess(validation.slug!);
     } catch (error) {
       console.error("Error updating group:", error);
       toast.error("Failed to update group.");
-    } finally {
       setIsUpdating(false);
     }
   };
@@ -85,7 +100,7 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onClose }) => {
         />
       </div>
       <div className="mt-6 flex justify-end gap-3">
-        <Button type="button" variant="ghost" onClick={onClose}>
+        <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
         <Button type="submit" isLoading={isUpdating}>

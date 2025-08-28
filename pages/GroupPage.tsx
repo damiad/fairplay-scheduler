@@ -1,7 +1,8 @@
 import { deleteDoc, doc } from "@firebase/firestore";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { useParams } from "react-router-dom";
+// Import useNavigate hook
+import { useParams, useNavigate } from "react-router-dom";
 
 import Modal from "../components/common/Modal";
 import Spinner from "../components/common/Spinner";
@@ -16,9 +17,11 @@ import { db } from "../services/firebase";
 import { EventInstance } from "../types";
 
 const GroupPage: React.FC = () => {
-  const { groupId } = useParams<{ groupId: string }>();
+  const { groupSlug } = useParams<{ groupSlug: string }>();
+  const navigate = useNavigate();
   const { user, userProfile } = useAuth();
-  const { group, upcomingEvents, pastEvents, loading } = useGroupData(groupId);
+  const { group, upcomingEvents, pastEvents, loading } =
+    useGroupData(groupSlug);
 
   const [isCreateEventModalOpen, setCreateEventModalOpen] = useState(false);
   const [isEditEventModalOpen, setEditEventModalOpen] = useState(false);
@@ -49,10 +52,29 @@ const GroupPage: React.FC = () => {
     }
   };
 
+  // This function will be called on a successful group update.
+  const handleGroupUpdateSuccess = (newSlug: string) => {
+    setEditGroupModalOpen(false); // First, close the modal.
+    // Then, navigate to the page with the new slug.
+    navigate(`/group/${newSlug}`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Spinner />
+      </div>
+    );
+  }
+
+  // If loading is finished and there's still no group, show a "Not Found" message.
+  if (!group) {
+    return (
+      <div className="text-center py-10">
+        <h2 className="text-2xl font-bold mb-2">Group Not Found</h2>
+        <p className="text-gray-400">
+          The group you are looking for does not exist or may have been moved.
+        </p>
       </div>
     );
   }
@@ -77,17 +99,19 @@ const GroupPage: React.FC = () => {
 
       {isOwner && (
         <>
-          <Modal
-            isOpen={isCreateEventModalOpen}
-            onClose={() => setCreateEventModalOpen(false)}
-            closeOnOverlayClick={false}
-            title="Create New Event"
-          >
-            <CreateEventForm
-              groupId={groupId!}
+          {group && (
+            <Modal
+              isOpen={isCreateEventModalOpen}
               onClose={() => setCreateEventModalOpen(false)}
-            />
-          </Modal>
+              closeOnOverlayClick={false}
+              title="Create New Event"
+            >
+              <CreateEventForm
+                groupId={group.id}
+                onClose={() => setCreateEventModalOpen(false)}
+              />
+            </Modal>
+          )}
 
           {selectedInstance && (
             <Modal
@@ -110,9 +134,11 @@ const GroupPage: React.FC = () => {
               closeOnOverlayClick={false}
               title="Edit Group Details"
             >
+              {/* Pass the new handler functions to the form */}
               <EditGroupForm
                 group={group}
-                onClose={() => setEditGroupModalOpen(false)}
+                onUpdateSuccess={handleGroupUpdateSuccess}
+                onCancel={() => setEditGroupModalOpen(false)}
               />
             </Modal>
           )}

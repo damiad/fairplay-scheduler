@@ -44,9 +44,9 @@ const DashboardPage: React.FC = () => {
           {groups.length > 0 ? (
             groups.map((group) => (
               <div
-                key={group.id}
+                key={group.slug}
                 className="bg-dark-surface p-6 rounded-lg shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
-                onClick={() => navigate(`/group/${group.id}`)}
+                onClick={() => navigate(`/group/${group.slug}`)}
               >
                 <h2 className="text-xl font-bold text-primary mb-2">
                   {group.name}

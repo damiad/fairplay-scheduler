@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 
 import { useAuth } from "../../hooks/useAuth";
 import { db } from "../../services/firebase";
+import { validateGroupDetails } from "../../utils/utils";
 import Button from "../common/Button";
 import OwnersInput from "./OwnersInput";
 
@@ -17,27 +18,30 @@ const CreateGroupForm: React.FC<CreateGroupFormProps> = ({ onClose }) => {
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
 
-  // The creator is always the first owner.
   const [ownerUids, setOwnerUids] = useState<string[]>(user ? [user.uid] : []);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!groupName.trim() || !user) return;
 
-    // Validation: Ensure there is at least one owner.
-    if (ownerUids.length === 0) {
-      toast.error("A group must have at least one owner.");
-      return; // Stop the submission if there are no owners.
-    }
-
     setIsCreating(true);
     try {
+      const validation = await validateGroupDetails(groupName, ownerUids);
+
+      if (!validation.isValid) {
+        toast.error(validation.error!);
+        setIsCreating(false);
+        return;
+      }
+
       await addDoc(collection(db, "groups"), {
         name: groupName,
+        slug: validation.slug,
         description: groupDesc,
         ownerUids: ownerUids,
         createdAt: serverTimestamp(),
       });
+
       toast.success("Group created successfully!");
       onClose();
     } catch (error) {
